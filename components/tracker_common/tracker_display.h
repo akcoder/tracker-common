@@ -126,6 +126,24 @@ inline void pass(esphome::light::LightState &backlight, const Pass &p) {
   call.perform();
 }
 
+// The project says whether auto-dim is on and what the night factor is now (it knows where the Sun
+// is: from its clock and position), once at start-up.
+inline bool (*auto_on)() = nullptr;
+inline float (*factor_now)() = nullptr;
+
+// The `Backlight` number (1-100 %): with auto-dim on it sets the DAYTIME level, and the light follows
+// it scaled by the night factor; otherwise it is the light's level.
+inline void set_backlight_pct(esphome::light::LightState &backlight, float pct, float &day) {
+  float v = pct / 100.0f;
+  if (auto_on && auto_on()) {
+    day = v;
+    v = std::max(0.01f, v * (factor_now ? factor_now() : 1.0f));
+  }
+  auto call = backlight.turn_on();
+  call.set_brightness(v);
+  call.perform();
+}
+
 // A touch wakes a blanked panel for a minute (UI-44c).
 inline void on_touch(esphome::light::LightState &backlight, float day, uint32_t now_ms) {
   touch(g_state, now_ms);

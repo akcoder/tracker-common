@@ -1,0 +1,49 @@
+# The backlight as the user meets it, the same on every tracker (an optional package file, beside
+# boards/guition-4848s040.yaml): the three brightness globals, the 1-100 % `Backlight` number that HA and
+# the web UI use (the light itself is internal), the light's slider sync, and the touch wake.
+#
+# Needed from the project:
+#   * an LVGL slider with id `sl_bright` (the settings page's brightness slider);
+#   * at start-up, `tracker::display::auto_on` (is auto-dim/auto-brightness on?) and
+#     `tracker::display::factor_now` (the 0.25..1 night factor for now), e.g. in on_boot;
+#   * its own auto switch (its default and wording differ per project).
+globals:
+  - id: bright_on_open        # brightness when settings opened (Cancel restores it)
+    type: float
+    initial_value: "1.0"
+  - id: bright_day            # the daytime brightness 0..1: auto-dim scales it down after sunset
+    type: float
+    restore_value: true
+    initial_value: "0.8"
+  - id: bright_day_open       # bright_day when settings opened (Cancel restores it)
+    type: float
+    initial_value: "0.8"
+
+number:
+  - platform: template        # the light itself is internal: HA and the web UI get this
+    id: backlight_pct
+    name: Backlight
+    icon: mdi:brightness-percent
+    min_value: 1
+    max_value: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    set_action:
+      - lambda: tracker::display::set_backlight_pct(*id(backlight), x, id(bright_day));
+
+light:
+  - id: !extend backlight
+    on_state:                 # keep the settings slider and the number in step with HA / web changes
+      - lambda: |-
+          const float pct = roundf(id(backlight).remote_values.get_brightness() * 100.0f);
+          lv_obj_t *s = id(sl_bright);   // null until LVGL is set up (the light restores first)
+          if (s != nullptr && (int) pct != lv_slider_get_value(s))
+            lv_slider_set_value(s, (int) pct, LV_ANIM_OFF);
+          if (pct >= 1 && id(backlight_pct).state != pct)
+            id(backlight_pct).publish_state(pct);
+
+touchscreen:
+  - id: !extend touch
+    on_touch:                 # a touch wakes a blanked panel for a minute (Auto Off, UI-44c)
+      - lambda: tracker::display::on_touch(*id(backlight), id(bright_day), esphome::millis());

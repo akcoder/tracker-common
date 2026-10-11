@@ -27,6 +27,8 @@ substitutions:
   http_timeout: 10s
   timezone: UTC
   ap_name: Tracker
+  ap_timeout: 30s
+  wifi_reboot_timeout: 0s
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -54,6 +56,8 @@ wifi:
   id: wifi_comp
   ap:                         # an open fallback AP; a project renames it with the MAC suffix at boot
     ssid: "${ap_name}"
+    ap_timeout: ${ap_timeout}   # start the AP this long after Wi-Fi fails (ESPHome's default is 90 s)
+  reboot_timeout: ${wifi_reboot_timeout}   # 0: never reboot away from the AP while someone is configuring
 
 captive_portal:
   id: portal
