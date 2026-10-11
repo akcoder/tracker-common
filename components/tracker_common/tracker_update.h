@@ -375,7 +375,11 @@ inline void set_page_ok(bool ok) { page_ok = ok; }
 // The internet install downloads and writes in ONE blocking call on the main
 // loop: no LVGL timer runs and nothing redraws until it ends, so the bar would
 // sit at 0. The OTA component's own callbacks move it and force a redraw.
+inline void (*ota_hook_begin)() = nullptr;   // the project's own: pause its data task ...
+inline void (*ota_hook_error)() = nullptr;   // ... and resume it when the install failed
+
 inline void ota_begin(const char *what = "Downloading") {
+  if (ota_hook_begin) ota_hook_begin();
   std::snprintf(ui_.what, sizeof(ui_.what), "%s", what);
   if (ui_.mode != M_INSTALLING) {               // started from HA: show the card too
     ui_.since = now_ms();
@@ -394,8 +398,13 @@ inline void ota_progress(float pc) {
 }
 
 inline void ota_end(bool ok) {
+  if (!ok && ota_hook_error) ota_hook_error();   // always: the begin hook paused the project's task
   if (ui_.mode != M_INSTALLING) return;
-  if (!ok) { show(M_INSTALL_FAILED); lv_refr_now(nullptr); return; }
+  if (!ok) {
+    show(M_INSTALL_FAILED);
+    lv_refr_now(nullptr);
+    return;
+  }
   lv_label_set_text(ui_.l1, "Installed, restarting");
   lv_bar_set_value(ui_.bar, 100, LV_ANIM_OFF);
   lv_refr_now(nullptr);

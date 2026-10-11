@@ -1,0 +1,58 @@
+# Diagnostic entities every tracker exposes (HA's device page and the web UI's System group): the
+# network address and name, the ESPHome version, signal strength, uptime and free memory. Use as a
+# package beside boards/guition-4848s040.yaml. The project defines the web group
+# `grp_system` (web_server: sorting_groups) and may add its own diagnostics beside these.
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      id: ip_addr
+      name: IP Address
+      icon: mdi:ip-network
+      entity_category: diagnostic
+      web_server: {sorting_group_id: grp_system, sorting_weight: 5}
+    ssid:
+      id: wifi_ssid_info
+      name: Connected SSID
+      icon: mdi:wifi
+      entity_category: diagnostic
+      web_server: {sorting_group_id: grp_system, sorting_weight: 6}
+  - platform: version
+    name: ESPHome Version
+    icon: mdi:chip
+    entity_category: diagnostic
+    web_server: {sorting_group_id: grp_system, sorting_weight: 7}
+
+sensor:
+  - platform: wifi_signal
+    id: s_wi_fi_signal
+    name: Wi-Fi Signal
+    icon: mdi:wifi
+    update_interval: 60s
+    entity_category: diagnostic
+    web_server: {sorting_group_id: grp_system, sorting_weight: 8}
+  - platform: uptime
+    id: s_uptime
+    name: Uptime
+    icon: mdi:timer-outline
+    entity_category: diagnostic
+    web_server: {sorting_group_id: grp_system, sorting_weight: 9}
+  - platform: template
+    id: s_free_internal_ram
+    name: Free Internal RAM
+    icon: mdi:memory
+    unit_of_measurement: kB
+    accuracy_decimals: 0
+    update_interval: 60s
+    entity_category: diagnostic
+    lambda: return heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024.0f;
+    web_server: {sorting_group_id: grp_system, sorting_weight: 10}
+  - platform: template
+    id: s_free_psram
+    name: Free PSRAM
+    icon: mdi:memory
+    unit_of_measurement: kB
+    accuracy_decimals: 0
+    update_interval: 60s
+    entity_category: diagnostic
+    lambda: return heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024.0f;
+    web_server: {sorting_group_id: grp_system, sorting_weight: 11}

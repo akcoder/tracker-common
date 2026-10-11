@@ -1,0 +1,181 @@
+# The Guition ESP32-4848S040 as every tracker uses it: 4.0" 480x480 ST7701S RGB panel, GT911 touch,
+# 16 MB flash, 8 MB octal PSRAM. Use it as an ESPHome package, and override per project through
+# `substitutions:` (a project's own top-level value wins over the default here):
+#
+#   packages:
+#     tracker_board:
+#       url: https://github.com/akcoder/tracker-common
+#       ref: v0.4.0
+#       files: [boards/guition-4848s040.yaml]
+#
+# Blocks with an id (touch, backlight, wifi_comp, ota_esphome ...) are meant to be extended by the
+# project: ESPHome merges a project's entry with the same id into the one here (on_touch hooks, a
+# light's on_state, wifi on_connect, ...).
+#
+# Needed from the project: `substitutions: ap_name` (the open fallback AP's name), and for the OTA
+# card, tracker_common's tracker_update.h (the YAML below calls tracker::upd::ota_*).
+substitutions:
+  backlight_min: "0.10"      # HW-6: lowest duty still visible; raise it if the panel goes dark at the bottom
+  tcp_window: "16384"        # CONFIG_LWIP_TCP_WND_DEFAULT: f1-tracker 65535 (NET-15), sky-tracker 16384
+  tcp_mbox: "16"             # recv mailbox: >= window / MSS (65535/1440 = 46 -> 64)
+  tcp_sack: "n"              # selective ack out: a lost segment costs more behind a big window
+  icache_32kb: "n"           # CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: sky-tracker y (PERF-13)
+  http_timeout: 10s
+  timezone: UTC
+  ap_name: Tracker
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      # PERF-2: re-sync the panel DMA every vblank so a stall cannot leave the picture permanently shifted.
+      CONFIG_LCD_RGB_RESTART_IN_VSYNC: y
+      # PERF-10: run code and rodata from PSRAM. Flash and PSRAM share one bus on the S3: flash fetches
+      # starved the panel's refills (jitter) and flash writes stalled the cache entirely (shift during
+      # uploads). This replaces CONFIG_LCD_RGB_ISR_IRAM_SAFE, which must NOT be added (PERF-3).
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: y
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: y
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: ${icache_32kb}
+      # lwIP: the window caps a download at window/RTT; the mailbox must scale with it.
+      CONFIG_LWIP_TCP_WND_DEFAULT: "${tcp_window}"
+      CONFIG_LWIP_TCP_RECVMBOX_SIZE: "${tcp_mbox}"
+      CONFIG_LWIP_TCP_SACK_OUT: ${tcp_sack}
+      # lwIP/Wi-Fi buffers out of the scarce internal RAM, into PSRAM.
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: y
+      # All mbedTLS memory from PSRAM: a third TLS session (the update check) did not fit in internal RAM.
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  id: logger_main
+  # decision 5: the S3 default console is USB Serial/JTAG on GPIO19/20, and GPIO19 is the GT911's SDA.
+  hardware_uart: UART0
+
+api:
+  id: api_server
+  reboot_timeout: 0s          # the default 15 min "no HA client" reboot kills the AP
+  max_connections: 8          # at the default 5 an extra log viewer is dropped
+
+# Improv is mandatory wherever wifi: appears: credentials arrive over BLE or USB serial.
+wifi:
+  id: wifi_comp
+  ap:                         # an open fallback AP; a project renames it with the MAC suffix at boot
+    ssid: "${ap_name}"
+
+captive_portal:
+  id: portal
+
+esp32_improv:
+  authorizer: none
+
+improv_serial:
+  id: improv_uart
+
+safe_mode:
+  id: safe_mode_main
+
+web_server:
+  port: 80
+  version: 3
+  local: true                 # bundle the UI so it also works on the AP with no internet
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: ${timezone}
+  - platform: homeassistant   # sets the clock as soon as HA connects
+    id: ha_time
+    timezone: ${timezone}
+
+http_request:
+  id: http_client
+  verify_ssl: true
+  timeout: ${http_timeout}
+
+# ---------------------------------------------------------------- the panel
+spi:
+  id: spi_panel
+  clk_pin: GPIO48
+  mosi_pin: GPIO47
+
+i2c:
+  - id: bus_a                 # touch (GT911)
+    # ESPHome warns that GPIO19/20 belong to the USB-Serial-JTAG interface. That warning is EXPECTED and
+    # is why the console is pinned to UART0 - the GT911 owns GPIO19.
+    sda: GPIO19
+    scl: GPIO45               # a strapping pin; known good on this board
+
+display:
+  - platform: mipi_rgb
+    model: GUITION-4848S040   # pins, timings and 12 MHz pclk from the model
+    id: main_display
+    update_interval: never
+    auto_clear_enabled: false
+    transform:                # 180 deg (the model default is true/true)
+      mirror_x: false
+      mirror_y: false
+
+touchscreen:
+  - platform: gt911
+    id: touch
+    i2c_id: bus_a
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+    # 30 kHz, not 1 kHz: 1 kHz is audible - the backlight converter's inductor whines loudest at low duty,
+    # which is where auto-dim parks the panel for most of a winter (f1-tracker decision 4).
+    frequency: 30000Hz
+    min_power: ${backlight_min}
+    zero_means_zero: true
+
+light:
+  - platform: monochromatic
+    id: backlight
+    name: Backlight Light
+    internal: true            # HA and the web UI get the 1-100 % number instead
+    output: backlight_pwm
+    restore_mode: RESTORE_AND_ON
+    default_transition_length: 250ms
+
+# ---------------------------------------------------------------- firmware installs
+# ONE card for every install (USB web upload, ESPHome OTA, the internet update): tracker_update.h's
+# install card draws and moves the bar. A project's own steps (pausing its data task, resuming after a
+# failure) go in tracker::upd::ota_hook_begin / ota_hook_error, set once at start-up.
+ota:
+  - platform: esphome
+    id: ota_esphome
+    on_begin:
+      - lambda: tracker::upd::ota_begin("Receiving the file");
+    on_progress:
+      - lambda: tracker::upd::ota_progress(x);
+    on_end:
+      - lambda: tracker::upd::ota_end(true);
+    on_error:
+      - lambda: tracker::upd::ota_end(false);
+  - platform: web_server
+    id: ota_web
+    on_begin:
+      - lambda: tracker::upd::ota_begin("Receiving the file");
+    on_progress:
+      - lambda: tracker::upd::ota_progress(x);
+    on_end:
+      - lambda: tracker::upd::ota_end(true);
+    on_error:
+      - lambda: tracker::upd::ota_end(false);
+  - platform: http_request
+    id: ota_http
+    on_begin:
+      - lambda: tracker::upd::ota_begin("Downloading");
+    on_progress:
+      - lambda: tracker::upd::ota_progress(x);
+    on_end:
+      - lambda: tracker::upd::ota_end(true);
+    on_error:
+      - lambda: tracker::upd::ota_end(false);
