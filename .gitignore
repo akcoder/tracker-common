@@ -3,3 +3,4 @@ tests/test_update
 __pycache__/
 tests/test_sun
 tests/test_png
+tests/test_boot
