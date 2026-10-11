@@ -48,6 +48,8 @@ struct Branding {
   const char *header_svg = "";    // replaces the header badge; "" leaves it as ESPHome has it
   size_t header_len = 0;
   const char *project_url = "";   // where the header logo links; "" leaves ESPHome's link
+  const char *version = "";       // the logo's tooltip: ESPHome's page says its own UI version (3.0.0);
+                                  // "" leaves it. No backtick, $ or backslash (it goes in a template literal).
 };
 inline Branding brand;
 
@@ -64,6 +66,35 @@ inline void link_logo() {
   const size_t at = all.find(OLD);
   if (at == std::string_view::npos) {
     ESP_LOGW(TAG, "logo link not found; it stays as ESPHome has it");
+    return;
+  }
+  const size_t olen = sizeof(OLD) - 1, nlen = NEW.size(), len = page_len - olen + nlen;
+  auto *np = (char *) heap_caps_malloc(len, MALLOC_CAP_SPIRAM);
+  if (np == nullptr) return;
+  std::memcpy(np, page, at);
+  std::memcpy(np + at, NEW.data(), nlen);
+  std::memcpy(np + at + nlen, page + at + olen, page_len - at - olen);
+  heap_caps_free(page);
+  page = np;
+  page_len = len;
+}
+
+// The header logo's tooltip is `${this.version}`, and the page sets this.version=`3.0.0` once: the UI's
+// own version, meaningless on a device. Replace that one literal with the project's name and version.
+// A page worded differently is left as it is.
+inline void set_version() {
+  if (brand.version[0] == '\0') return;
+  for (const char *c = brand.version; *c; c++)
+    if (*c == '`' || *c == '$' || *c == '\\') {
+      ESP_LOGW(TAG, "version text has a character a template literal cannot take; tooltip unchanged");
+      return;
+    }
+  static const char OLD[] = "this.version=`3.0.0`";
+  const std::string NEW = std::string("this.version=`") + brand.version + "`";
+  const std::string_view all(page, page_len);
+  const size_t at = all.find(OLD);
+  if (at == std::string_view::npos) {
+    ESP_LOGW(TAG, "UI version literal not found; the logo tooltip stays as ESPHome has it");
     return;
   }
   const size_t olen = sizeof(OLD) - 1, nlen = NEW.size(), len = page_len - olen + nlen;
@@ -162,6 +193,7 @@ inline bool build() {
       std::memcpy(page + a2 + 11, "none", 4);
     if (n == 0) ESP_LOGW(TAG, "app icon selector not found; the app may replace the icon");
     link_logo();
+    set_version();
   }
   heap_caps_free(raw);
   return page != nullptr;
@@ -204,6 +236,7 @@ struct Branding {
   const char *favicon_svg = "", *header_svg = "";
   size_t header_len = 0;
   const char *project_url = "";
+  const char *version = "";
 };
 inline void install(const Branding &) {}
 }  // namespace web
