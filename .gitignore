@@ -1,3 +1,4 @@
 tests/test_update
 *.dSYM/
 __pycache__/
+tests/test_sun

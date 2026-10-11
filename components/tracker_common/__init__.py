@@ -5,6 +5,7 @@ the YAML's lambdas can call them:
 * tracker_updlogic.h  firmware updates, the part testable without a screen (version compare,
                       "only a NEWER version counts", release notes, the prompt's state machine)
 * tracker_update.h    the update card, the icon beside the gear, the install card (LVGL)
+* tracker_sun.h       the Sun's elevation from a position and the clock (auto-dim, sky maths)
 * tracker_web.h       the web page's tab icon and header badge, and the header logo's link
                       to the project's GitHub page
 
@@ -18,7 +19,7 @@ DEPENDENCIES = ["lvgl"]
 
 CONFIG_SCHEMA = cv.Schema({})
 
-HEADERS = ["tracker_updlogic.h", "tracker_update.h", "tracker_web.h"]
+HEADERS = ["tracker_sun.h", "tracker_updlogic.h", "tracker_update.h", "tracker_web.h"]
 
 
 async def to_code(config):
