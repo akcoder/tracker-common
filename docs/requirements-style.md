@@ -43,6 +43,9 @@ UI-68a The hourly check never opens anything by itself. ...
   (`UI-68a`, `UI-68b`). A letter refines or extends the parent; it never contradicts it. A
   requirement that is dropped keeps its ID in the log with the word *dropped*, and the number is
   not reused.
+- A project that tracks progress per requirement puts a checkbox after the ID: `UI-3  [x] text`
+  (done and verified) or `UI-3  [ ] text` (open). The box is optional; where it is used it is kept
+  up to date (f1-tracker does; sky-tracker's log says what is installed instead).
 - The ID starts at column 0; continuation lines are indented to the text (seven spaces, or the
   ID's length plus two). Tables and code blocks go at column 0 under it.
 - The paragraph says what MUST be so and why in a sentence (the symptom, the measurement); long
