@@ -24,6 +24,7 @@ substitutions:
   tcp_mbox: "16"             # recv mailbox: >= window / MSS (65535/1440 = 46 -> 64)
   tcp_sack: "n"              # selective ack out: a lost segment costs more behind a big window
   icache_32kb: "n"           # CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: sky-tracker y (PERF-13)
+  logger_level: INFO            # DEBUG on UART0 prints ~600 boot lines (~1.5 s of blocking writes) before the first screen
   http_timeout: 10s
   timezone: UTC
   ap_name: Tracker
@@ -44,6 +45,7 @@ logger:
   id: logger_main
   # decision 5: the S3 default console is USB Serial/JTAG on GPIO19/20, and GPIO19 is the GT911's SDA.
   hardware_uart: UART0
+  level: ${logger_level}
 
 api:
   id: api_server

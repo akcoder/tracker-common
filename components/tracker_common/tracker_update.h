@@ -15,7 +15,9 @@
 
 #include "tracker_updlogic.h"
 
-#if defined(USE_ESP32) && !defined(TRACKER_HOST_TEST)
+// The card needs ESPHome's update component, which is only in the build when the project has an
+// `update:` platform (USE_UPDATE); a project without one still compiles this header, to nothing.
+#if defined(USE_ESP32) && defined(USE_UPDATE) && !defined(TRACKER_HOST_TEST)
 #include "esphome/components/update/update_entity.h"
 #include "esphome/core/log.h"
 #elif defined(TRACKER_HOST_TEST)
@@ -58,7 +60,7 @@ inline constexpr int ICON_W = 46, ICON_H = 46, ICON_X = -50, ICON_Y = -2;   // b
 // Nothing here uses the 12 px font; `small` is kept only so older callers still compile.
 inline const char *source = "";           // the manifest URL, for the log (NET-13a)
 
-#if defined(USE_ESP32) || defined(TRACKER_HOST_TEST)
+#if (defined(USE_ESP32) && defined(USE_UPDATE)) || defined(TRACKER_HOST_TEST)
 
 #if defined(TRACKER_HOST_TEST)
 using Entity = HostUpdate;
@@ -435,7 +437,7 @@ inline void init(Entity *e, const lv_font_t *title, const lv_font_t *body,
   lv_timer_create([](lv_timer_t *) { tick(); }, 500, nullptr);
 }
 
-#endif  // device only
+#endif  // device with an update platform, or host test
 
 }  // namespace upd
 }  // namespace tracker
