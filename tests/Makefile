@@ -1,18 +1,20 @@
 CXX ?= c++
 CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -O1
 
-all: test_update test_sun test_png test_boot test_about
+all: test_update test_sun test_png test_boot test_about test_display test_autodim
 	./test_update
 	./test_sun
 	./test_png
 	./test_boot
 	./test_about
+	./test_display
+	./test_autodim
 
 test_update: test_update.cpp ../components/tracker_common/tracker_updlogic.h
 	$(CXX) $(CXXFLAGS) -o $@ test_update.cpp
 
 clean:
-	rm -f test_update test_sun test_png test_boot test_about
+	rm -f test_update test_sun test_png test_boot test_about test_display test_autodim
 .PHONY: all clean
 
 test_sun: test_sun.cpp ../components/tracker_common/tracker_sun.h
@@ -30,3 +32,9 @@ test_about: test_about.cpp ../components/tracker_common/tracker_about.h
 # Compile check of the update card against LVGL (not part of `all`: needs an LVGL checkout).
 check_card: check_update_card.cpp ../components/tracker_common/tracker_update.h
 	$(CXX) -std=c++17 -fsyntax-only -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE -I$(CONF_DIR) -I$(LVGL_DIR) -I$(LVGL_DIR)/src -I../components/tracker_common check_update_card.cpp
+
+test_display: test_display.cpp ../components/tracker_common/tracker_display.h
+	$(CXX) $(CXXFLAGS) -o $@ test_display.cpp
+
+test_autodim: test_autodim.cpp ../components/tracker_common/tracker_display.h
+	$(CXX) $(CXXFLAGS) -o $@ test_autodim.cpp

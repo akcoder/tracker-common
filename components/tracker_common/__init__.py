@@ -19,7 +19,7 @@ DEPENDENCIES = ["lvgl"]
 
 CONFIG_SCHEMA = cv.Schema({})
 
-HEADERS = ["tracker_jpg.h", "tracker_png.h", "tracker_panel.h", "tracker_boot.h", "tracker_about.h", "tracker_sun.h", "tracker_updlogic.h", "tracker_update.h", "tracker_web.h"]
+HEADERS = ["tracker_jpg.h", "tracker_png.h", "tracker_panel.h", "tracker_boot.h", "tracker_about.h", "tracker_display.h", "tracker_sun.h", "tracker_updlogic.h", "tracker_update.h", "tracker_web.h"]
 
 
 async def to_code(config):
