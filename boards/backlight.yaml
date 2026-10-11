@@ -1,12 +1,13 @@
 # The backlight as the user meets it, the same on every tracker (an optional package file, beside
 # boards/guition-4848s040.yaml): the three brightness globals, the 1-100 % `Backlight` number that HA and
-# the web UI use (the light itself is internal), the light's slider sync, and the touch wake.
+# the web UI use (the light itself is internal), the `Auto Brightness` switch, the light's slider sync,
+# and the touch wake.
 #
 # Needed from the project:
 #   * an LVGL slider with id `sl_bright` (the settings page's brightness slider);
-#   * at start-up, `tracker::display::auto_on` (is auto-dim/auto-brightness on?) and
-#     `tracker::display::factor_now` (the 0.25..1 night factor for now), e.g. in on_boot;
-#   * its own auto switch (its default and wording differ per project).
+#   * at start-up, `tracker::display::factor_now` (the 0.25..1 night factor for now: it knows where
+#     the Sun is, from its clock and position), e.g. in on_boot;
+#   * a web group `grp_display` (web_server sorting_groups) for the entities below.
 globals:
   - id: bright_on_open        # brightness when settings opened (Cancel restores it)
     type: float
@@ -19,6 +20,17 @@ globals:
     type: float
     initial_value: "0.8"
 
+switch:
+  - platform: template        # UI-44: brightness follows the Sun (Backlight = the daytime level)
+    id: auto_bright
+    name: Auto Brightness
+    icon: mdi:brightness-auto
+    web_server: {sorting_group_id: grp_display, sorting_weight: 2}
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - lambda: id(bright_day) = std::max(0.05f, id(backlight).current_values.get_brightness());
+
 number:
   - platform: template        # the light itself is internal: HA and the web UI get this
     id: backlight_pct
@@ -30,7 +42,7 @@ number:
     unit_of_measurement: "%"
     mode: slider
     set_action:
-      - lambda: tracker::display::set_backlight_pct(*id(backlight), x, id(bright_day));
+      - lambda: tracker::display::set_backlight_pct(*id(backlight), x, id(bright_day), id(auto_bright).state);
 
 light:
   - id: !extend backlight
