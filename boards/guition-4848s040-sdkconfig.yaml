@@ -1,0 +1,34 @@
+# The memory, cache and network tuning of the Guition ESP32-4848S040 (an optional package file: a
+# project with its own `esp32: framework: sdkconfig_options` leaves this out).
+#
+# Tunables, by substitution (a project's own value wins over the default here):
+#   tcp_window   CONFIG_LWIP_TCP_WND_DEFAULT      f1-tracker 65535 (NET-15), sky-tracker 16384
+#   tcp_mbox     CONFIG_LWIP_TCP_RECVMBOX_SIZE    >= window / MSS (65535/1440 -> 64)
+#   tcp_sack     CONFIG_LWIP_TCP_SACK_OUT         y/n: a lost segment costs more behind a big window
+#   icache_32kb  CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB   y/n: sky-tracker y (PERF-13)
+substitutions:
+  tcp_window: "16384"
+  tcp_mbox: "16"
+  tcp_sack: "n"
+  icache_32kb: "n"
+
+esp32:
+  framework:
+    sdkconfig_options:
+      # PERF-2: re-sync the panel DMA every vblank so a stall cannot leave the picture permanently shifted.
+      CONFIG_LCD_RGB_RESTART_IN_VSYNC: y
+      # PERF-10: run code and rodata from PSRAM. Flash and PSRAM share one bus on the S3: flash fetches
+      # starved the panel's refills (jitter) and flash writes stalled the cache entirely (shift during
+      # uploads). This replaces CONFIG_LCD_RGB_ISR_IRAM_SAFE, which must NOT be added (PERF-3).
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: y
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: y
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: ${icache_32kb}
+      # lwIP: the window caps a download at window/RTT; the mailbox must scale with it.
+      CONFIG_LWIP_TCP_WND_DEFAULT: "${tcp_window}"
+      CONFIG_LWIP_TCP_RECVMBOX_SIZE: "${tcp_mbox}"
+      CONFIG_LWIP_TCP_SACK_OUT: ${tcp_sack}
+      # lwIP/Wi-Fi buffers out of the scarce internal RAM, into PSRAM.
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: y
+      # All mbedTLS memory from PSRAM: a third TLS session (the update check) did not fit in internal RAM.
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: y
+

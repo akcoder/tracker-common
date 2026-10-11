@@ -1,0 +1,4 @@
+# BLE Wi-Fi setup (Improv over Bluetooth) for the trackers that want a phone to set the network.
+# Add to a project's package `files:`; USB-serial Improv is in the board package already.
+esp32_improv:
+  authorizer: none
