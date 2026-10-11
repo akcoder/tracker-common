@@ -26,3 +26,7 @@ test_boot: test_boot.cpp ../components/tracker_common/tracker_boot.h
 
 test_about: test_about.cpp ../components/tracker_common/tracker_about.h
 	$(CXX) $(CXXFLAGS) -o $@ test_about.cpp
+
+# Compile check of the update card against LVGL (not part of `all`: needs an LVGL checkout).
+check_card: check_update_card.cpp ../components/tracker_common/tracker_update.h
+	$(CXX) -std=c++17 -fsyntax-only -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE -I$(CONF_DIR) -I$(LVGL_DIR) -I$(LVGL_DIR)/src -I../components/tracker_common check_update_card.cpp

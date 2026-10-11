@@ -18,6 +18,27 @@
 #if defined(USE_ESP32) && !defined(TRACKER_HOST_TEST)
 #include "esphome/components/update/update_entity.h"
 #include "esphome/core/log.h"
+#elif defined(TRACKER_HOST_TEST)
+// Host build (the project's test harness includes lvgl.h first): the update entity is a stand-in the
+// test drives, the clock is a variable, and the log macros print nothing.
+#ifndef ESP_LOGD
+#define ESP_LOGD(tag, ...) ((void) 0)
+#define ESP_LOGI(tag, ...) ((void) 0)
+#endif
+namespace tracker {
+namespace upd {
+struct HostUpdate {
+  int state = 0;                          // EntState: 0 unknown, 1 no update, 2 available, 3 installing
+  std::string latest_version, current_version, summary;
+  bool has_progress = false;
+  float progress = 0;
+  int checks = 0, performs = 0;           // how often the card asked
+  void check() { checks++; }
+  void perform() { performs++; }
+};
+inline uint32_t host_ms = 0;              // the test sets the clock
+}  // namespace upd
+}  // namespace tracker
 #endif
 
 namespace tracker {
@@ -37,21 +58,44 @@ inline constexpr int ICON_W = 46, ICON_H = 46, ICON_X = -50, ICON_Y = -2;   // b
 // Nothing here uses the 12 px font; `small` is kept only so older callers still compile.
 inline const char *source = "";           // the manifest URL, for the log (NET-13a)
 
-#if defined(USE_ESP32) && !defined(TRACKER_HOST_TEST)
+#if defined(USE_ESP32) || defined(TRACKER_HOST_TEST)
 
-inline esphome::update::UpdateEntity *ent = nullptr;
+#if defined(TRACKER_HOST_TEST)
+using Entity = HostUpdate;
+inline Entity *ent = nullptr;
+inline int st() { return ent ? ent->state : 0; }
+inline std::string latest() { return ent ? ent->latest_version : std::string(); }
+inline std::string current() { return ent ? ent->current_version : std::string(); }
+inline std::string summary() { return ent ? ent->summary : std::string(); }
+inline bool has_prog() { return ent && ent->has_progress; }
+inline float prog() { return ent ? ent->progress : 0.0f; }
+inline uint32_t now_ms() { return host_ms; }
+#else
+using Entity = esphome::update::UpdateEntity;
+inline Entity *ent = nullptr;
 inline int st() { return ent ? (int) ent->state : 0; }
 inline std::string latest() { return ent ? ent->update_info.latest_version : std::string(); }
 inline std::string current() { return ent ? ent->update_info.current_version : std::string(); }
 inline std::string summary() { return ent ? ent->update_info.summary : std::string(); }
 inline bool has_prog() { return ent && ent->update_info.has_progress; }
 inline float prog() { return ent ? ent->update_info.progress : 0.0f; }
+inline uint32_t now_ms() { return esphome::millis(); }
+#endif
+
+// A project whose network task must be quiet while the check or the install runs (sky-tracker's
+// NET-14: hold the task, wait until it is idle) sets this; the check gets a 25 s hold and the
+// install a 40 s hold. Null: they run directly.
+inline void (*run_hook)(void (*fn)(), uint32_t hold_ms) = nullptr;
+inline constexpr uint32_t CHECK_HOLD_MS = 25000, PERFORM_HOLD_MS = 40000;
+inline void check_thunk() { if (ent) ent->check(); }
+inline void perform_thunk() { if (ent) ent->perform(); }
 inline void do_check() {
   ESP_LOGD("upd", "firmware: GET %s", source);     // NET-13a: ESPHome's own check logs nothing
-  if (ent) ent->check();
+  if (run_hook) run_hook(check_thunk, CHECK_HOLD_MS); else check_thunk();
 }
-inline void do_perform() { if (ent) ent->perform(); }
-inline uint32_t now_ms() { return esphome::millis(); }
+inline void do_perform() {
+  if (run_hook) run_hook(perform_thunk, PERFORM_HOLD_MS); else perform_thunk();
+}
 
 inline const lv_font_t *f_title = nullptr, *f_body = nullptr, *f_small = nullptr;
 
@@ -66,6 +110,7 @@ struct Ui {
 };
 inline Ui ui_;
 inline lv_obj_t *icon = nullptr;       // beside the gear, on the top layer
+inline bool icon_external = false;     // the project's own widget (set_icon), not ours
 inline bool page_ok = false;           // is a page with the gear showing? (set from the app tick)
 
 inline void close() {
@@ -320,7 +365,11 @@ inline void check_now(bool wifi_up) {           // Settings > Check for updates
   do_check();
 }
 
+inline void check_now() { check_now(true); }     // a project that checks the link itself
 inline void set_source(const char *url) { source = url; }
+// The icon beside the gear can be the project's own widget (a YAML button, say): give it here
+// before init(), which then creates none. Its tap should call offer_now().
+inline void set_icon(lv_obj_t *button) { icon = button; icon_external = true; }
 inline void set_page_ok(bool ok) { page_ok = ok; }
 
 // The internet install downloads and writes in ONE blocking call on the main
@@ -355,23 +404,25 @@ inline void ota_end(bool ok) {
 // The icon: LV_SYMBOL_DOWNLOAD in 0xFFB547, beside the gear. Created here on the
 // top layer rather than in the YAML, because it belongs to no one page - the gear
 // is on several and the icon follows them (page_ok).
-inline void init(esphome::update::UpdateEntity *e, const lv_font_t *title, const lv_font_t *body,
+inline void init(Entity *e, const lv_font_t *title, const lv_font_t *body,
                  const lv_font_t *small, const lv_font_t *icon_font) {
   ent = e;
   f_title = title; f_body = body; f_small = small;
-  icon = lv_button_create(lv_layer_top());
-  lv_obj_set_size(icon, ICON_W, ICON_H);
-  lv_obj_align(icon, LV_ALIGN_BOTTOM_RIGHT, ICON_X, ICON_Y);
-  lv_obj_set_style_bg_opa(icon, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_shadow_width(icon, 0, 0);
-  lv_obj_set_style_border_width(icon, 0, 0);
-  lv_obj_t *l = lv_label_create(icon);
-  lv_label_set_text(l, LV_SYMBOL_DOWNLOAD);
-  if (icon_font) lv_obj_set_style_text_font(l, icon_font, 0);
-  lv_obj_set_style_text_color(l, lv_color_hex(0xFFB547), 0);
-  lv_obj_center(l);
-  lv_obj_add_event_cb(icon, [](lv_event_t *) { offer_now(); }, LV_EVENT_SHORT_CLICKED, nullptr);
-  lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
+  if (!icon_external) {
+    icon = lv_button_create(lv_layer_top());
+    lv_obj_set_size(icon, ICON_W, ICON_H);
+    lv_obj_align(icon, LV_ALIGN_BOTTOM_RIGHT, ICON_X, ICON_Y);
+    lv_obj_set_style_bg_opa(icon, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_shadow_width(icon, 0, 0);
+    lv_obj_set_style_border_width(icon, 0, 0);
+    lv_obj_t *l = lv_label_create(icon);
+    lv_label_set_text(l, LV_SYMBOL_DOWNLOAD);
+    if (icon_font) lv_obj_set_style_text_font(l, icon_font, 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(0xFFB547), 0);
+    lv_obj_center(l);
+    lv_obj_add_event_cb(icon, [](lv_event_t *) { offer_now(); }, LV_EVENT_SHORT_CLICKED, nullptr);
+    lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
+  }
   lv_timer_create([](lv_timer_t *) { tick(); }, 500, nullptr);
 }
 
