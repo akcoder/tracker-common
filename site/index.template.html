@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{name}}</title>
+<meta name="description" content="{{description}}">
+<link rel="icon" type="image/svg+xml" href="{{favicon}}">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0d14; color: #c9d3f2;
+         font: 16px/1.6 ui-monospace, "Roboto Mono", SFMono-Regular, Menlo, monospace; }
+  main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  header { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2rem; }
+  header img { width: 88px; height: 88px; }
+  h1 { font-size: 1.6rem; margin: 0; color: #f2f5fc; font-weight: 500; }
+  .sub { color: #7e8bb3; margin: .25rem 0 0; font-size: .95rem; }
+  h2 { font-size: 1.05rem; color: #ff8a1f; font-weight: 500;
+       margin: 2.5rem 0 .75rem; }
+  p, li { color: #a8b3cc; }
+  a { color: #6c98ff; }
+  code { background: #121a2b; padding: .1rem .35rem; border-radius: 3px; color: #c9d3f2; }
+  pre { background: #121a2b; padding: .9rem 1rem; border-radius: 8px; overflow-x: auto;
+        border: 1px solid #1e2a44; }
+  img.shot { max-width: 100%; height: auto; border-radius: 8px; margin: .5rem 0; }
+  .install { background: #121a2b; border: 1px solid #2d5bd0; border-radius: 10px;
+             padding: 1.25rem; margin: 1.5rem 0; }
+  .muted { color: #5a6687; font-size: .85rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  td, th { text-align: left; padding: .35rem .6rem .35rem 0;
+           border-bottom: 1px solid #1a2238; vertical-align: top; }
+  th { color: #7e8bb3; font-weight: 500; }
+  footer { margin-top: 3rem; color: #5a6687; font-size: .82rem; }
+</style>
+<script type="module"
+        src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+<body>
+<main>
+  <header>
+    <img src="{{logo}}" alt="">
+    <div>
+      <h1>{{name}}</h1>
+      <p class="sub">{{tagline}}<br>
+         Made for ESPHome &middot; Guition ESP32-4848S040</p>
+    </div>
+  </header>
+
+{{hero}}
+  <div class="install">
+    <p><strong>Install it from this page.</strong> Plug the board in over USB and
+       press the button. Chrome or Edge on a desktop; Web Serial is not available
+       in Safari or on a phone.</p>
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate">Install {{name}}</button>
+      <span slot="unsupported">This browser cannot flash over USB &mdash; use Chrome or Edge.</span>
+      <span slot="not-allowed">Serial access was blocked.</span>
+    </esp-web-install-button>
+    <p class="muted"><strong>Wi-Fi:</strong> when the install finishes, the same dialog asks
+       for your network (<a href="https://www.improv-wifi.com">Improv</a> over USB), so there is
+       nothing to type on the panel. Already installed? Press the button again, pick the
+       port and choose <em>Connect to Wi-Fi</em>. Or skip USB: join the
+       <em>{{ap_name}}</em> access point from your phone. No credentials are
+       compiled in.</p>
+  </div>
+
+  <h2>What it does</h2>
+  <ul>
+{{features}}  </ul>
+{{after_features}}
+  <h2>Adopt it in ESPHome</h2>
+  <p>The configuration is open and builds unmodified. Add it to your dashboard:</p>
+  <pre>github://{{repo}}/{{slug}}.yaml@main</pre>
+
+  <h2>Updates</h2>
+  <p>The device checks the project's releases once an hour and asks before
+     installing anything; Home Assistant shows the same update.{{sdcard}}</p>
+
+  <h2>Data</h2>
+  <table>
+{{sources}}  </table>
+{{sources_note}}
+  <footer>
+{{footer}}    <p><a href="https://github.com/{{repo}}">Source on GitHub</a></p>
+  </footer>
+</main>
+</body>
+</html>

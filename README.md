@@ -57,3 +57,12 @@ Specs: `sky-tracker` UI-68, 68a, 68b, 68c; `f1-tracker` decisions 183, 184, 194.
 Keep both in step when the update screen changes.
 
 [MIT](LICENSE).
+
+## v0.4 additions
+
+| File | Contents |
+|---|---|
+| `boards/guition-4848s040.yaml` | the Guition ESP32-4848S040 as an ESPHome package: esp32/sdkconfig (tunables as substitutions), PSRAM, logger on UART0, API, Wi-Fi with Improv, captive portal, web server base, time, `http_request`, the panel (SPI, I2C, mipi_rgb, GT911), backlight (30 kHz) and light, and the three OTA platforms that drive one install card |
+| `diagnostics.yaml` | IP, SSID, ESPHome version, Wi-Fi signal, uptime, free internal RAM and PSRAM |
+| `tracker_display.h` | auto-dim curve, Auto Off window, the 30 s backlight pass (3 s ramp) and the touch wake |
+| `site/index.template.html`, `tools/make_site.py` | the install page, built from a project's `docs/site.json` |
