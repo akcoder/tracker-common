@@ -23,6 +23,9 @@ tracker::upd::init(id(fw_update), title_font, body_font, small_font, icon_font);
 tracker::web::install({FAVICON_SVG, HEADER_SVG, HEADER_SVG_LEN, "https://github.com/me/project"});
 ```
 
+**Fonts, the same on every tracker:** title Roboto Light 34, all other card text (lines, buttons,
+release notes) Roboto Mono 16. Pass those to `tracker::upd::init`; the 12 px font is not used.
+
 The update card's geometry is a set of named constants (`tracker::upd::CARD_W` …) so a project's
 render tool can read them rather than carry a copy that drifts.
 

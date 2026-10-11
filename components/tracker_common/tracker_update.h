@@ -32,6 +32,9 @@ inline constexpr int BTN_W = 170, BTN_H = 44, BTN_Y = 196, BTN_TALL_Y = 374;
 inline constexpr int BAR_W = 340, BAR_H = 16, BAR_Y = 180;
 inline constexpr int ICON_W = 46, ICON_H = 46, ICON_X = -50, ICON_Y = -2;   // beside the gear
 
+// The fonts every tracker passes to init() (one look for all): the title in Roboto Light 34,
+// everything else - the two text lines, the buttons and the release notes - in Roboto Mono 16.
+// Nothing here uses the 12 px font; `small` is kept only so older callers still compile.
 inline const char *source = "";           // the manifest URL, for the log (NET-13a)
 
 #if defined(USE_ESP32) && !defined(TRACKER_HOST_TEST)
