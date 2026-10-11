@@ -1,0 +1,47 @@
+# The fonts every tracker shares, so a title, a card body or a list row is the same size on
+# every project. Use it as an ESPHome package:
+#
+#   packages:
+#     tracker_fonts:
+#       url: https://github.com/akcoder/tracker-common
+#       ref: main
+#       files: [fonts.yaml]
+#
+# Roboto Mono for data, Roboto for titles. A project's own extras (an alert size, a big
+# countdown, icon fonts) stay in the project.
+font:
+  - file: "gfonts://Roboto Mono"
+    id: mono12                # list rows, facts
+    size: 12
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto Mono"
+    id: mono14                # card body
+    size: 14
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto Mono"
+    id: mono16                # titles, buttons, the update card's text and release notes
+    size: 16
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto Mono"
+    id: mono18                # card titles
+    size: 18
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto Mono@500"
+    id: mono24                # clock, banners, panels
+    size: 24
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto@300"
+    id: setup_title           # boot, About, update-card titles
+    size: 34
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://Roboto"
+    id: setup_body
+    size: 22
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
