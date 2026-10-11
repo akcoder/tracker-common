@@ -62,7 +62,9 @@ Keep both in step when the update screen changes.
 
 | File | Contents |
 |---|---|
-| `boards/guition-4848s040.yaml` | the Guition ESP32-4848S040 as an ESPHome package: esp32/sdkconfig (tunables as substitutions), PSRAM, logger on UART0, API, Wi-Fi with Improv, captive portal, web server base, time, `http_request`, the panel (SPI, I2C, mipi_rgb, GT911), backlight (30 kHz) and light, and the three OTA platforms that drive one install card |
+| `boards/guition-4848s040.yaml` | the Guition ESP32-4848S040 as an ESPHome package: the ESP32-S3, PSRAM, logger on UART0, API, Wi-Fi with Improv, captive portal, web server base, time, `http_request`, the panel (SPI, I2C, mipi_rgb, GT911), backlight (30 kHz) and light, and the three OTA platforms that drive one install card |
+| `boards/guition-4848s040-sdkconfig.yaml` | optional: the memory, cache and network sdkconfig, with `tcp_window`, `tcp_mbox`, `tcp_sack` and `icache_32kb` as substitutions; leave it out to keep your own |
+| `boards/ble-improv.yaml` | optional: BLE Wi-Fi setup (USB-serial Improv is in the board package) |
 | `diagnostics.yaml` | IP, SSID, ESPHome version, Wi-Fi signal, uptime, free internal RAM and PSRAM |
 | `tracker_display.h` | auto-dim curve, Auto Off window, the 30 s backlight pass (3 s ramp) and the touch wake |
 | `site/index.template.html`, `tools/make_site.py` | the install page, built from a project's `docs/site.json` |
