@@ -72,6 +72,7 @@ inline std::string summary() { return ent ? ent->summary : std::string(); }
 inline bool has_prog() { return ent && ent->has_progress; }
 inline float prog() { return ent ? ent->progress : 0.0f; }
 inline uint32_t now_ms() { return host_ms; }
+inline void put_state(int s) { if (ent) ent->state = s; }
 #else
 using Entity = esphome::update::UpdateEntity;
 inline Entity *ent = nullptr;
@@ -82,6 +83,16 @@ inline std::string summary() { return ent ? ent->update_info.summary : std::stri
 inline bool has_prog() { return ent && ent->update_info.has_progress; }
 inline float prog() { return ent ? ent->update_info.progress : 0.0f; }
 inline uint32_t now_ms() { return esphome::millis(); }
+// The entity's state is a read-only view of a protected field (set by its own check): a pointer to the
+// field, named through a derived class (allowed), lets the card put it right.
+struct Poke : esphome::update::UpdateEntity {
+  static esphome::update::UpdateState esphome::update::UpdateEntity::*field() { return &Poke::state_; }
+};
+inline void put_state(int s) {
+  if (!ent) return;
+  ent->*Poke::field() = (esphome::update::UpdateState) s;
+  ent->publish_state();
+}
 #endif
 
 // A project whose network task must be quiet while the check or the install runs (sky-tracker's
@@ -329,6 +340,12 @@ inline void log_result(int s) {
 
 // Every 500 ms: follow the entity.
 inline void tick() {
+  // ESPHome calls ANY version difference "available", an older release included. The card counts only a
+  // newer one (below), and the entity's own state, which the web page and Home Assistant show, is put right too.
+  if (entity_overstates(st(), latest().c_str(), current().c_str())) {
+    ESP_LOGD("upd", "firmware: the manifest's %s is not newer than %s: no update", latest().c_str(), current().c_str());
+    put_state(E_NO_UPDATE);
+  }
   const int s = newer_only(st(), latest().c_str(), current().c_str());
   log_result(s);
   const Mode next = next_mode(ui_.mode, s, now_ms() - ui_.since);

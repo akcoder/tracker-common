@@ -44,6 +44,12 @@ static void test_newer_only() {
   okf(newer_only(E_UNKNOWN, "9.9.9", "0.1.0") == E_UNKNOWN, "unknown stays unknown");
   okf(newer_only(E_INSTALLING, "0.1.0", "0.2.0") == E_INSTALLING, "installing stays installing");
   okf(newer_only(E_AVAILABLE, nullptr, nullptr) == E_NO_UPDATE, "null versions are not an update");
+  okf(entity_overstates(E_AVAILABLE, "0.1.0", "0.2.0"), "the entity says available for an older release: put right");
+  okf(entity_overstates(E_AVAILABLE, "0.2.0", "0.2.0"), "...and for the same version");
+  okf(!entity_overstates(E_AVAILABLE, "0.3.0", "0.2.0"), "a newer release: the entity is right");
+  okf(!entity_overstates(E_NO_UPDATE, "0.1.0", "0.2.0") && !entity_overstates(E_INSTALLING, "0.1.0", "0.2.0") &&
+          !entity_overstates(E_UNKNOWN, "0.1.0", "0.2.0"),
+      "only the AVAILABLE state is ever corrected");
 }
 
 static void test_notes() {

@@ -44,6 +44,12 @@ inline int newer_only(int state, const char *latest, const char *current) {
   return state;
 }
 
+// True when the entity itself says "available" for a version that is not newer: the web page and Home Assistant
+// show the entity's own state, so tracker_update.h puts it right (the card already uses newer_only).
+inline bool entity_overstates(int state, const char *latest, const char *current) {
+  return state == E_AVAILABLE && newer_only(state, latest, current) != state;
+}
+
 // The release notes as a 400 px box can show them: Markdown's emphasis marks,
 // code ticks and heading hashes dropped, runs of blank lines squeezed, typographic
 // punctuation folded to what the fonts have, at most ~1.5 KB.

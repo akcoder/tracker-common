@@ -12,7 +12,7 @@ tracker_common:
 
 | File | Contents |
 |---|---|
-| `tracker_updlogic.h` | firmware updates without a screen: version compare, **only a newer version counts**, release notes folded to the fonts, the prompt's state machine |
+| `tracker_updlogic.h` | firmware updates without a screen: version compare, **only a newer version counts** (and the entity itself is put back to "no update" when it says otherwise), release notes folded to the fonts, the prompt's state machine |
 | `tracker_update.h` | the update card (checking / up to date / available with notes / failed), the icon beside the gear, the install card with its bar |
 | `tracker_web.h` | the web page's tab icon and header badge, and the header logo's link to the project's GitHub page |
 | `tracker_jpg.h` | baseline JPEG from memory with the ROM's TJpgDec: `decode_half`, `decode_full`, `decode_fit` (box filter, window, stride), `decode_copy`; progress rows, cancel, decode-while-downloading |
